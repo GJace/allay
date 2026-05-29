@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Allay</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f4; --bg3: #eeece9;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --blue-bg: #e6f1fb; --blue-text: #0c447c;
+    --green-bg: #eaf3de; --green-text: #27500a;
+    --amber-bg: #faeeda; --amber-text: #633806;
+    --red-text: #a32d2d;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .page { display: none; max-width: 700px; margin: 0 auto; padding: 2rem 1.25rem; }
+  .page.active { display: block; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  h2 { font-size: 18px; font-weight: 500; margin-bottom: 1rem; }
+  h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.75rem; }
+  .muted { font-size: 14px; color: var(--text2); }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 4px; margin-top: 12px; }
+  input[type=text], input[type=password], input[type=date], select, textarea {
+    width: 100%; padding: 8px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text);
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #378add; }
+  textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: transparent; font-size: 14px; font-family: inherit;
+    cursor: pointer; color: var(--text); transition: background 0.12s;
+  }
+  .btn:hover { background: var(--bg2); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn-primary:hover { opacity: 0.85; background: var(--text); }
+  .btn-sm { padding: 5px 10px; font-size: 13px; }
+  .btn-danger { color: var(--red-text); border-color: rgba(163,45,45,0.3); }
+  .nav { display: flex; gap: 8px; margin-bottom: 1.5rem; align-items: center; }
+  .nav-title { font-size: 14px; font-weight: 500; margin-left: auto; color: var(--text2); }
+  .pair-card {
+    background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius);
+    padding: 0.75rem 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .pair-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius); display: inline-block; white-space: nowrap; }
+  .badge-pending { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-done { background: var(--green-bg); color: var(--green-text); }
+  .code-box {
+    background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius);
+    padding: 4px 10px; font-family: monospace; font-size: 16px; letter-spacing: 3px;
+  }
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 0.5px solid var(--border); }
+  .tab {
+    padding: 8px 16px; font-size: 14px; cursor: pointer;
+    border-radius: var(--radius) var(--radius) 0 0; border: none;
+    background: transparent; color: var(--text2); font-family: inherit;
+  }
+  .tab.active { background: var(--bg2); color: var(--text); font-weight: 500; }
+  .form-section { display: none; }
+  .form-section.active { display: block; }
+  .alert { padding: 0.75rem 1rem; border-radius: var(--radius); font-size: 13px; margin-bottom: 1rem; }
+  .alert-info { background: var(--blue-bg); color: var(--blue-text); }
+  .skill-row {
+    display: grid; grid-template-columns: 1.4fr 1fr 1.6fr; gap: 8px;
+    align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 13px;
+  }
+  .skill-row:last-child { border-bottom: none; }
+  .sum-bar {
+    background: var(--bg2); border-radius: var(--radius); padding: 0.75rem 1rem;
+    margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+  }
+  .sum-val { font-size: 17px; font-weight: 500; }
+  .status-msg { font-size: 12px; color: var(--text2); margin-left: 8px; }
+  .setup-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .setup-box code { font-family: monospace; font-size: 13px; background: var(--bg2); padding: 2px 6px; border-radius: 4px; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 1.5rem 0; }
+  .export-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--text); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 4px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 500px) {
+    .row { grid-template-columns: 1fr; }
+    .skill-row { grid-template-columns: 1fr; }
+    .export-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP PAGE -->
+<div id="setup" class="page active">
+  <div style="margin-bottom:2rem;">
+    <h1>Project Allay</h1>
+    <p class="muted">First-time setup — connect your data store</p>
+  </div>
+  <div class="setup-box">
+    <h3>1. Create a free JSONBin account</h3>
+    <p class="muted" style="margin-top:4px;margin-bottom:8px;">Go to <a href="https://jsonbin.io" target="_blank" style="color:var(--blue-text);">jsonbin.io</a>, sign up free, then go to <b>API Keys</b> and copy your Master Key.</p>
+  </div>
+  <div class="setup-box">
+    <h3>2. Paste your API key below</h3>
+    <label>JSONBin Master Key</label>
+    <input type="password" id="setup-apikey" placeholder="$2a$10$..." />
+    <label style="margin-top:12px;">Admin password <span class="muted">(choose anything)</span></label>
+    <input type="text" id="setup-adminpw" placeholder="e.g. allay2025" />
+    <div style="margin-top:1rem;">
+      <button class="btn btn-primary" onclick="doSetup()">Save & continue</button>
+    </div>
+    <p id="setup-error" style="color:var(--red-text);font-size:13px;margin-top:0.5rem;display:none;"></p>
+  </div>
+  <p class="muted" style="font-size:12px;">These are saved in your browser only. Other users just access the URL — they never see the API key.</p>
+</div>
+
+<!-- LANDING -->
+<div id="landing" class="page">
+  <div style="margin-bottom:2rem;">
+    <h1>Project Allay</h1>
+    <p class="muted">Mentorship feedback system for judges</p>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:280px;">
+    <button class="btn btn-primary" onclick="showPage('admin-login')">&#128737; Admin panel</button>
+    <button class="btn" onclick="showPage('judge-entry')">&#128196; Fill my form</button>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="admin-login" class="page">
+  <div class="nav">
+    <button class="btn btn-sm" onclick="showPage('landing')">&larr; Back</button>
+    <span class="nav-title">Admin</span>
+  </div>
+  <div class="card" style="max-width:340px;">
+    <h2>Admin access</h2>
+    <label>Password</label>
+    <input type="password" id="admin-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkAdmin()" />
+    <div style="margin-top:1rem;"><button class="btn btn-primary" onclick="checkAdmin()">Enter</button></div>
+    <p id="pw-error" style="color:var(--red-text);margin-top:0.5rem;font-size:13px;display:none;">Wrong password</p>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel" class="page">
+  <div class="nav">
+    <button class="btn btn-sm" onclick="showPage('landing')">&larr; Back</button>
+    <span class="nav-title">Admin panel</span>
+  </div>
+
+  <div class="card">
+    <h3>Create new pair</h3>
+    <div class="row">
+      <div>
+        <label>Lecturer name</label><input type="text" id="lec-name" placeholder="Name" />
+        <label>Lecturer level</label><input type="text" id="lec-level" placeholder="e.g. L2" />
+      </div>
+      <div>
+        <label>Apprentice name</label><input type="text" id="app-name" placeholder="Name" />
+        <label>Apprentice level</label><input type="text" id="app-level" placeholder="e.g. L1" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:4px;">
+      <div><label>Event</label><input type="text" id="event-name" placeholder="Event name" /></div>
+      <div><label>Date</label><input type="date" id="event-date" /></div>
+    </div>
+    <label>Target skill / area</label>
+    <input type="text" id="target-skill" placeholder="e.g. Policy assessment" />
+    <div style="margin-top:1rem;">
+      <button class="btn btn-primary" id="create-btn" onclick="createPair()">+ Create pair</button>
+    </div>
+  </div>
+
+  <hr class="divider" />
+  <h3>Active pairs</h3>
+  <div id="pairs-list"><p class="muted">Loading...</p></div>
+
+  <hr class="divider" />
+  <h3>Export all data</h3>
+  <div class="export-row">
+    <button class="btn" onclick="exportAllExcel()">&#128196; Export all pairs — Excel</button>
+  </div>
+</div>
+
+<!-- JUDGE ENTRY -->
+<div id="judge-entry" class="page">
+  <div class="nav">
+    <button class="btn btn-sm" onclick="showPage('landing')">&larr; Back</button>
+  </div>
+  <div class="card" style="max-width:340px;">
+    <h2>Enter your pair code</h2>
+    <label>Pair code</label>
+    <input type="text" id="pair-code-input" placeholder="e.g. AB12"
+      style="text-transform:uppercase;letter-spacing:3px;font-family:monospace;font-size:18px;" maxlength="4"
+      onkeydown="if(event.key==='Enter')enterCode()" oninput="this.value=this.value.toUpperCase()" />
+    <div style="margin-top:1rem;"><button class="btn btn-primary" onclick="enterCode()">Continue</button></div>
+    <p id="code-error" style="color:var(--red-text);margin-top:0.5rem;font-size:13px;display:none;">Code not found</p>
+  </div>
+</div>
+
+<!-- JUDGE PANEL -->
+<div id="judge-panel" class="page">
+  <div class="nav">
+    <button class="btn btn-sm" onclick="showPage('landing')">&larr; Back</button>
+    <span class="nav-title" id="judge-panel-title"></span>
+  </div>
+  <div id="pair-info-bar" class="alert alert-info"></div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('lecturer-form')" id="tab-lecturer">Lecturer report</button>
+    <button class="tab" onclick="switchTab('apprentice-form')" id="tab-apprentice">Apprentice report</button>
+  </div>
+
+  <div id="lecturer-form" class="form-section active">
+    <div class="card">
+      <h3>Target area progress</h3>
+      <textarea id="lec-progress" placeholder="Starting point, objectives, key strengths, areas for improvement..."></textarea>
+    </div>
+    <div class="card">
+      <h3>General skills</h3>
+      <div id="general-skills-form"></div>
+    </div>
+    <div class="card">
+      <h3>Specific skills</h3>
+      <div id="specific-skills-form"></div>
+    </div>
+    <div class="card">
+      <h3>Final comments &amp; judge profile</h3>
+      <textarea id="lec-final" placeholder="Overall comments and judge profile summary..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:0.5rem;">
+      <button class="btn btn-primary" onclick="saveForm('lecturer')">&#128190; Save</button>
+      <button class="btn" onclick="printForm('lecturer')">&#128438; Print / PDF</button>
+      <button class="btn" onclick="exportPairExcel('lecturer')">&#128196; Export Excel</button>
+      <span class="status-msg" id="lec-save-status"></span>
+    </div>
+  </div>
+
+  <div id="apprentice-form" class="form-section">
+    <div class="card">
+      <h3>Self-assessment of target area</h3>
+      <textarea id="app-progress" placeholder="Starting point, objectives, strengths, areas for improvement..."></textarea>
+    </div>
+    <div class="card">
+      <h3>Mentoring experience — self</h3>
+      <div id="apprentice-skills-form"></div>
+    </div>
+    <div class="card">
+      <h3>Final comments</h3>
+      <textarea id="app-final" placeholder="Overall reflections on the mentorship experience..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:0.5rem;">
+      <button class="btn btn-primary" onclick="saveForm('apprentice')">&#128190; Save</button>
+      <button class="btn" onclick="printForm('apprentice')">&#128438; Print / PDF</button>
+      <button class="btn" onclick="exportPairExcel('apprentice')">&#128196; Export Excel</button>
+      <span class="status-msg" id="app-save-status"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
+let CFG = {};
+
+function loadCfg() {
+  try { CFG = JSON.parse(localStorage.getItem('allay_cfg') || '{}'); } catch(e) { CFG = {}; }
+}
+function saveCfg() { localStorage.setItem('allay_cfg', JSON.stringify(CFG)); }
+
+// ── DATA ────────────────────────────────────────────────────────────────
+const GENERAL_SKILLS = [
+  'Approach to peers','Approach to players','Communication skills','Attentiveness',
+  'Proactiveness','Logistics','Leadership','Dependability','Table situation analysis',
+  'Problem-solving','Critical thinking','Stress management','Self awareness','Giving and receiving feedback'
+];
+const SPECIFIC_SKILLS = [
+  'Core rules knowledge','Tournament rules knowledge','Document consultation',
+  'Policy assessment','Investigation skills','End of round','Deck checks',
+  'Floor management','Features - table','Features - backstage','Stream coordination'
+];
+const APPRENTICE_SKILLS = [
+  'Clarity of learning goals','Perceived skill growth','Commitment to process',
+  'Mentor accessibility & responsiveness','Value of assigned tasks',
+  'Self-paced learning efficacy','Overall mentorship satisfaction'
+];
+const LEC_RATINGS = [
+  {v:1,l:'1 — Needs improvement'},{v:2,l:'2 — Below expectations'},
+  {v:3,l:'3 — Meets expectations'},{v:4,l:'4 — Above expectations'},{v:5,l:'5 — Exceeds expectations'}
+];
+const APP_RATINGS = [
+  {v:1,l:'1 — Minimal'},{v:2,l:'2 — Slightly dissatisfied'},
+  {v:3,l:'3 — Neutral'},{v:4,l:'4 — Satisfied'},{v:5,l:'5 — Highly satisfied'}
+];
+const LEC_LABELS = ['','Needs improvement','Below expectations','Meets expectations','Above expectations','Exceeds expectations'];
+const APP_LABELS = ['','Minimal','Slightly dissatisfied','Neutral','Satisfied','Highly satisfied'];
+
+let pairs = {};
+let currentPair = null;
+
+// ── JSONBIN API ─────────────────────────────────────────────────────────
+async function binFetch(path, opts={}) {
+  const res = await fetch(JSONBIN_BASE + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': CFG.apiKey,
+      ...(opts.headers||{})
+    }
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function loadPairs() {
+  if (!CFG.binId) {
+    // create bin on first run
+    const res = await binFetch('/b', {
+      method: 'POST',
+      headers: { 'X-Bin-Name': 'project-allay', 'X-Bin-Private': 'false' },
+      body: JSON.stringify({ pairs: {} })
+    });
+    CFG.binId = res.metadata.id;
+    saveCfg();
+    pairs = {};
+    return;
+  }
+  try {
+    const res = await binFetch('/b/' + CFG.binId + '/latest');
+    pairs = res.record.pairs || {};
+  } catch(e) { pairs = {}; }
+}
+
+async function savePairs() {
+  await binFetch('/b/' + CFG.binId, {
+    method: 'PUT',
+    body: JSON.stringify({ pairs })
+  });
+}
+
+// ── SETUP ───────────────────────────────────────────────────────────────
+async function doSetup() {
+  const apiKey = document.getElementById('setup-apikey').value.trim();
+  const adminPw = document.getElementById('setup-adminpw').value.trim();
+  const errEl = document.getElementById('setup-error');
+  if (!apiKey || !adminPw) { errEl.textContent = 'Please fill both fields.'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  CFG = { apiKey, adminPw, binId: null };
+  try {
+    await loadPairs();
+    saveCfg();
+    showPage('landing');
+  } catch(e) {
+    errEl.textContent = 'Could not connect to JSONBin. Check your API key.';
+    errEl.style.display='block';
+    CFG = {};
+  }
+}
+
+// ── NAV ─────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function checkAdmin() {
+  if (document.getElementById('admin-pw').value === CFG.adminPw) {
+    document.getElementById('pw-error').style.display='none';
+    renderPairsList();
+    showPage('admin-panel');
+  } else {
+    document.getElementById('pw-error').style.display='block';
+  }
+}
+
+// ── PAIRS ───────────────────────────────────────────────────────────────
+function generateCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i=0;i<4;i++) code += c[Math.floor(Math.random()*c.length)];
+  return code;
+}
+
+async function createPair() {
+  const lecName = document.getElementById('lec-name').value.trim();
+  const appName = document.getElementById('app-name').value.trim();
+  if (!lecName || !appName) { alert('Please enter both names'); return; }
+  const btn = document.getElementById('create-btn');
+  btn.innerHTML = '<span class="spinner"></span> Saving...'; btn.disabled=true;
+  let code; do { code = generateCode(); } while (pairs[code]);
+  pairs[code] = {
+    lecName, lecLevel: document.getElementById('lec-level').value.trim(),
+    appName, appLevel: document.getElementById('app-level').value.trim(),
+    event: document.getElementById('event-name').value.trim(),
+    date: document.getElementById('event-date').value,
+    target: document.getElementById('target-skill').value.trim(),
+    code, lecData:{}, appData:{}, lecSaved:false, appSaved:false
+  };
+  await savePairs();
+  ['lec-name','lec-level','app-name','app-level','event-name','target-skill'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('event-date').value='';
+  btn.innerHTML='+ Create pair'; btn.disabled=false;
+  renderPairsList();
+}
+
+async function deletePair(code) {
+  if (!confirm(`Delete pair ${code}? This cannot be undone.`)) return;
+  delete pairs[code];
+  await savePairs();
+  renderPairsList();
+}
+
+function renderPairsList() {
+  const el = document.getElementById('pairs-list');
+  const keys = Object.keys(pairs);
+  if (!keys.length) { el.innerHTML = '<p class="muted">No pairs yet.</p>'; return; }
+  el.innerHTML = keys.map(code => {
+    const p = pairs[code];
+    const status = (p.lecSaved && p.appSaved)
+      ? '<span class="badge badge-done">Both done</span>'
+      : (p.lecSaved || p.appSaved)
+        ? '<span class="badge badge-pending">In progress</span>'
+        : '<span class="badge badge-pending">Pending</span>';
+    return `<div class="pair-card">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;">${p.lecName} (${p.lecLevel||'?'}) &harr; ${p.appName} (${p.appLevel||'?'})</div>
+        <div class="pair-meta">${p.event||'No event'}${p.date?' &middot; '+p.date:''} &middot; ${p.target||'No target'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        ${status}
+        <span class="code-box">${code}</span>
+        <button class="btn btn-sm" onclick="exportPairPDF('${code}')">PDF</button>
+        <button class="btn btn-sm" onclick="exportSingleExcel('${code}')">XLS</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePair('${code}')">&#10005;</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── JUDGE PANEL ─────────────────────────────────────────────────────────
+async function enterCode() {
+  const code = document.getElementById('pair-code-input').value.trim().toUpperCase();
+  const errEl = document.getElementById('code-error');
+  // refresh from server in case admin added pairs
+  try { await loadPairs(); } catch(e) {}
+  if (!pairs[code]) { errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  currentPair = code;
+  loadJudgePanel(pairs[code]);
+  showPage('judge-panel');
+}
+
+function buildSkillsForm(containerId, skills, ratings, prefix) {
+  document.getElementById(containerId).innerHTML =
+    skills.map((s,i) => `<div class="skill-row">
+      <span>${s}</span>
+      <select id="${prefix}-r-${i}">${ratings.map(o=>`<option value="${o.v}">${o.l}</option>`).join('')}</select>
+      <input type="text" id="${prefix}-c-${i}" placeholder="Comment (optional)" />
+    </div>`).join('') +
+    `<div class="sum-bar"><span>Sum / avg</span><span class="sum-val" id="${prefix}-sum">— / —</span></div>`;
+  skills.forEach((_,i) => document.getElementById(`${prefix}-r-${i}`).addEventListener('change',()=>updateSum(prefix,skills.length)));
+}
+
+function updateSum(prefix, count) {
+  let sum = 0;
+  for(let i=0;i<count;i++) sum += parseInt(document.getElementById(`${prefix}-r-${i}`).value)||0;
+  document.getElementById(`${prefix}-sum`).textContent = `${sum} / avg ${(sum/count).toFixed(1)}`;
+}
+
+function loadJudgePanel(pair) {
+  document.getElementById('judge-panel-title').textContent = `${pair.lecName} ↔ ${pair.appName}`;
+  document.getElementById('pair-info-bar').textContent =
+    `${pair.event||'Event'}${pair.date?' · '+pair.date:''} · Target: ${pair.target||'—'}`;
+  buildSkillsForm('general-skills-form', GENERAL_SKILLS, LEC_RATINGS, 'gen');
+  buildSkillsForm('specific-skills-form', SPECIFIC_SKILLS, LEC_RATINGS, 'spe');
+  buildSkillsForm('apprentice-skills-form', APPRENTICE_SKILLS, APP_RATINGS, 'apl');
+  if (pair.lecData && Object.keys(pair.lecData).length) restoreForm('lecturer', pair.lecData);
+  if (pair.appData && Object.keys(pair.appData).length) restoreForm('apprentice', pair.appData);
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.form-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('tab-'+id.replace('-form','')).classList.add('active');
+}
+
+function collectForm(type) {
+  const d = {};
+  if (type==='lecturer') {
+    d.progress = document.getElementById('lec-progress').value;
+    d.final = document.getElementById('lec-final').value;
+    GENERAL_SKILLS.forEach((_,i)=>{ d[`gen-r-${i}`]=document.getElementById(`gen-r-${i}`).value; d[`gen-c-${i}`]=document.getElementById(`gen-c-${i}`).value; });
+    SPECIFIC_SKILLS.forEach((_,i)=>{ d[`spe-r-${i}`]=document.getElementById(`spe-r-${i}`).value; d[`spe-c-${i}`]=document.getElementById(`spe-c-${i}`).value; });
+  } else {
+    d.progress = document.getElementById('app-progress').value;
+    d.final = document.getElementById('app-final').value;
+    APPRENTICE_SKILLS.forEach((_,i)=>{ d[`apl-r-${i}`]=document.getElementById(`apl-r-${i}`).value; d[`apl-c-${i}`]=document.getElementById(`apl-c-${i}`).value; });
+  }
+  return d;
+}
+
+function restoreForm(type, d) {
+  if (type==='lecturer') {
+    if(d.progress) document.getElementById('lec-progress').value=d.progress;
+    if(d.final) document.getElementById('lec-final').value=d.final;
+    GENERAL_SKILLS.forEach((_,i)=>{ if(d[`gen-r-${i}`]) document.getElementById(`gen-r-${i}`).value=d[`gen-r-${i}`]; if(d[`gen-c-${i}`]) document.getElementById(`gen-c-${i}`).value=d[`gen-c-${i}`]; });
+    SPECIFIC_SKILLS.forEach((_,i)=>{ if(d[`spe-r-${i}`]) document.getElementById(`spe-r-${i}`).value=d[`spe-r-${i}`]; if(d[`spe-c-${i}`]) document.getElementById(`spe-c-${i}`).value=d[`spe-c-${i}`]; });
+    updateSum('gen',GENERAL_SKILLS.length); updateSum('spe',SPECIFIC_SKILLS.length);
+  } else {
+    if(d.progress) document.getElementById('app-progress').value=d.progress;
+    if(d.final) document.getElementById('app-final').value=d.final;
+    APPRENTICE_SKILLS.forEach((_,i)=>{ if(d[`apl-r-${i}`]) document.getElementById(`apl-r-${i}`).value=d[`apl-r-${i}`]; if(d[`apl-c-${i}`]) document.getElementById(`apl-c-${i}`).value=d[`apl-c-${i}`]; });
+    updateSum('apl',APPRENTICE_SKILLS.length);
+  }
+}
+
+async function saveForm(type) {
+  if (!currentPair) return;
+  const statusEl = document.getElementById(type==='lecturer'?'lec-save-status':'app-save-status');
+  statusEl.innerHTML = '<span class="spinner"></span> Saving...';
+  const data = collectForm(type);
+  // Refresh from server first to avoid overwriting other form's data
+  await loadPairs();
+  if (type==='lecturer') { pairs[currentPair].lecData=data; pairs[currentPair].lecSaved=true; }
+  else { pairs[currentPair].appData=data; pairs[currentPair].appSaved=true; }
+  await savePairs();
+  statusEl.textContent = 'Saved ✓';
+  setTimeout(()=>statusEl.textContent='', 3000);
+}
+
+// ── PRINT/PDF ───────────────────────────────────────────────────────────
+function buildPrintHTML(pair, type) {
+  const isLec = type==='lecturer';
+  const data = isLec ? pair.lecData : pair.appData;
+  if (!data || !Object.keys(data).length) return null;
+  const skills = isLec ? GENERAL_SKILLS : APPRENTICE_SKILLS;
+  const prefix = isLec ? 'gen' : 'apl';
+  const rl = isLec ? LEC_LABELS : APP_LABELS;
+  const rows = skills.map((s,i)=>`<tr><td>${s}</td><td>${rl[data[prefix+'-r-'+i]]||'—'}</td><td>${data[prefix+'-c-'+i]||''}</td></tr>`).join('');
+  const speRows = isLec ? SPECIFIC_SKILLS.map((s,i)=>`<tr><td>${s}</td><td>${LEC_LABELS[data['spe-r-'+i]]||'—'}</td><td>${data['spe-c-'+i]||''}</td></tr>`).join('') : '';
+  const genSum = isLec ? GENERAL_SKILLS.reduce((acc,_,i)=>acc+(parseInt(data['gen-r-'+i])||0),0) : null;
+  const speSum = isLec ? SPECIFIC_SKILLS.reduce((acc,_,i)=>acc+(parseInt(data['spe-r-'+i])||0),0) : null;
+  const aplSum = !isLec ? APPRENTICE_SKILLS.reduce((acc,_,i)=>acc+(parseInt(data['apl-r-'+i])||0),0) : null;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Project Allay — ${isLec?'Lecturer':'Apprentice'} Report</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:2rem;max-width:820px;margin:auto;font-size:13px;color:#111;}
+    h1{font-size:18px;margin-bottom:4px;}h2{font-size:14px;margin-top:1.5rem;margin-bottom:6px;border-bottom:1px solid #ddd;padding-bottom:4px;}
+    table{width:100%;border-collapse:collapse;margin-top:0.5rem;}
+    th,td{border:1px solid #ddd;padding:5px 8px;text-align:left;}th{background:#f5f5f5;font-size:12px;}
+    .meta{font-size:12px;color:#555;margin-bottom:1.5rem;line-height:1.8;}
+    .sum{text-align:right;font-weight:bold;font-size:12px;margin-top:4px;}
+    p.content{white-space:pre-wrap;font-size:13px;line-height:1.6;margin-top:4px;}
+    @media print{body{padding:0.5rem;}}
+  </style></head><body>
+  <h1>Project Allay — ${isLec?'Lecturer':'Apprentice'} Report</h1>
+  <div class="meta">
+    <b>Lecturer:</b> ${pair.lecName} (${pair.lecLevel||'?'}) &nbsp;&nbsp;
+    <b>Apprentice:</b> ${pair.appName} (${pair.appLevel||'?'})<br>
+    <b>Event:</b> ${pair.event||'—'} &nbsp;&nbsp; <b>Date:</b> ${pair.date||'—'} &nbsp;&nbsp; <b>Target:</b> ${pair.target||'—'}
+  </div>
+  <h2>${isLec?'Target area progress':'Self-assessment of target area'}</h2>
+  <p class="content">${(data.progress||'—')}</p>
+  <h2>${isLec?'General skills':'Mentoring experience — self'}</h2>
+  <table><tr><th>Skill</th><th>Rating</th><th>Comment</th></tr>${rows}</table>
+  ${isLec?`<div class="sum">Sum: ${genSum} / Avg: ${(genSum/GENERAL_SKILLS.length).toFixed(1)}</div>`:`<div class="sum">Sum: ${aplSum} / Avg: ${(aplSum/APPRENTICE_SKILLS.length).toFixed(1)}</div>`}
+  ${isLec?`<h2>Specific skills</h2><table><tr><th>Skill</th><th>Rating</th><th>Comment</th></tr>${speRows}</table><div class="sum">Sum: ${speSum} / Avg: ${(speSum/SPECIFIC_SKILLS.length).toFixed(1)}</div>`:''}
+  <h2>Final comments</h2>
+  <p class="content">${data.final||'—'}</p>
+  </body></html>`;
+}
+
+function printForm(type) {
+  saveForm(type);
+  setTimeout(()=>{
+    const pair = pairs[currentPair];
+    const html = buildPrintHTML(pair, type);
+    if (!html) { alert('Please fill and save the form first.'); return; }
+    const win = window.open('','_blank');
+    win.document.write(html);
+    win.document.close();
+    win.print();
+  }, 800);
+}
+
+function exportPairPDF(code) {
+  const pair = pairs[code];
+  ['lecturer','apprentice'].forEach(type => {
+    const html = buildPrintHTML(pair, type);
+    if (!html) return;
+    const win = window.open('','_blank');
+    win.document.write(html);
+    win.document.close();
+    win.print();
+  });
+}
+
+// ── EXCEL ────────────────────────────────────────────────────────────────
+function pairToRows(pair) {
+  const rows = [];
+  const meta = [pair.code, pair.lecName, pair.lecLevel||'', pair.appName, pair.appLevel||'', pair.event||'', pair.date||'', pair.target||''];
+
+  // General skills
+  if (pair.lecData && Object.keys(pair.lecData).length) {
+    GENERAL_SKILLS.forEach((s,i)=>{
+      rows.push([...meta, 'Lecturer', 'General', s, pair.lecData[`gen-r-${i}`]||'', pair.lecData[`gen-c-${i}`]||'']);
+    });
+    SPECIFIC_SKILLS.forEach((s,i)=>{
+      rows.push([...meta, 'Lecturer', 'Specific', s, pair.lecData[`spe-r-${i}`]||'', pair.lecData[`spe-c-${i}`]||'']);
+    });
+  }
+  if (pair.appData && Object.keys(pair.appData).length) {
+    APPRENTICE_SKILLS.forEach((s,i)=>{
+      rows.push([...meta, 'Apprentice', 'Self', s, pair.appData[`apl-r-${i}`]||'', pair.appData[`apl-c-${i}`]||'']);
+    });
+  }
+  return rows;
+}
+
+function buildWorkbook(allPairs) {
+  const wb = XLSX.utils.book_new();
+  const header = ['Code','Lecturer','Lec Level','Apprentice','App Level','Event','Date','Target','Role','Category','Skill','Rating','Comment'];
+
+  // Summary sheet
+  const summaryData = [header];
+  allPairs.forEach(pair => { pairToRows(pair).forEach(r=>summaryData.push(r)); });
+  const ws = XLSX.utils.aoa_to_sheet(summaryData);
+  ws['!cols'] = [6,16,8,16,8,16,10,18,10,10,24,8,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'All pairs');
+
+  // Per-pair sheets
+  allPairs.forEach(pair => {
+    const sheetData = [header];
+    pairToRows(pair).forEach(r=>sheetData.push(r));
+    const ws2 = XLSX.utils.aoa_to_sheet(sheetData);
+    ws2['!cols'] = [6,16,8,16,8,16,10,18,10,10,24,8,30].map(w=>({wch:w}));
+    const name = `${pair.code} ${pair.lecName}`.slice(0,31);
+    XLSX.utils.book_append_sheet(wb, ws2, name);
+  });
+
+  return wb;
+}
+
+function exportAllExcel() {
+  const wb = buildWorkbook(Object.values(pairs));
+  XLSX.writeFile(wb, 'project-allay-all-pairs.xlsx');
+}
+
+function exportSingleExcel(code) {
+  const pair = pairs[code];
+  const wb = buildWorkbook([pair]);
+  XLSX.writeFile(wb, `project-allay-${code}-${pair.lecName}.xlsx`);
+}
+
+function exportPairExcel(type) {
+  if (!currentPair) return;
+  saveForm(type);
+  setTimeout(()=>{
+    exportSingleExcel(currentPair);
+  }, 800);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+async function init() {
+  loadCfg();
+  if (!CFG.apiKey || !CFG.adminPw) { showPage('setup'); return; }
+  try {
+    await loadPairs();
+    showPage('landing');
+  } catch(e) {
+    showPage('setup');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
