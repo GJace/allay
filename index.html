@@ -99,7 +99,7 @@
 <body>
 
 <!-- SETUP -->
-<div id="setup" class="page active">
+<div id="setup" class="page">
   <div style="margin-bottom:2rem;">
     <h1>Project Allay</h1>
     <p class="muted">First-time setup — connect your data store</p>
@@ -123,13 +123,13 @@
 </div>
 
 <!-- LANDING -->
-<div id="landing" class="page">
+<div id="landing" class="page active">
   <div style="margin-bottom:2rem;">
     <h1>Project Allay</h1>
     <p class="muted">Mentorship feedback system for judges</p>
   </div>
   <div style="display:flex;flex-direction:column;gap:12px;max-width:280px;">
-    <button class="btn btn-primary" onclick="showPage('admin-login')">&#128737; Admin panel</button>
+    <button class="btn btn-primary" onclick="checkAdmin()">&#128737; Admin panel</button>
     <button class="btn" onclick="showPage('judge-entry')">&#128196; I have a code</button>
   </div>
 </div>
@@ -143,8 +143,8 @@
   <div class="card" style="max-width:340px;">
     <h2>Admin access</h2>
     <label>Password</label>
-    <input type="password" id="admin-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkAdmin()" />
-    <div style="margin-top:1rem;"><button class="btn btn-primary" onclick="checkAdmin()">Enter</button></div>
+    <input type="password" id="admin-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')verifyAdmin()" />
+    <div style="margin-top:1rem;"><button class="btn btn-primary" onclick="verifyAdmin()">Enter</button></div>
     <p id="pw-error" style="color:var(--red-text);margin-top:0.5rem;font-size:13px;display:none;">Wrong password</p>
   </div>
 </div>
@@ -356,7 +356,7 @@ async function doSetup() {
   if (!apiKey || !adminPw) { errEl.textContent='Please fill both fields.'; errEl.style.display='block'; return; }
   errEl.style.display='none';
   CFG = { apiKey, adminPw, binId: null };
-  try { await loadPairs(); saveCfg(); showPage('landing'); }
+  try { await loadPairs(); saveCfg(); renderPairsList(); showPage('admin-panel'); }
   catch(e) { errEl.textContent='Could not connect to JSONBin. Check your API key.'; errEl.style.display='block'; CFG={}; }
 }
 
@@ -367,6 +367,11 @@ function showPage(id) {
 }
 
 function checkAdmin() {
+  if (!CFG.apiKey) { showPage('setup'); return; }
+  showPage('admin-login');
+}
+
+function verifyAdmin() {
   if (document.getElementById('admin-pw').value === CFG.adminPw) {
     document.getElementById('pw-error').style.display='none';
     renderPairsList(); showPage('admin-panel');
@@ -640,11 +645,8 @@ function exportFormExcel(type) {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-async function init() {
+function init() {
   loadCfg();
-  if (!CFG.apiKey || !CFG.adminPw) { showPage('setup'); return; }
-  try { await loadPairs(); showPage('landing'); }
-  catch(e) { showPage('setup'); }
 }
 init();
 </script>
