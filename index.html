@@ -69,10 +69,12 @@
   .alert-info { background: var(--blue-bg); color: var(--blue-text); }
   .alert-purple { background: var(--purple-bg); color: var(--purple-text); }
   .skill-row {
-    display: grid; grid-template-columns: 1.4fr 1fr 1.6fr; gap: 8px;
-    align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 13px;
+    display: grid; grid-template-columns: 1fr auto; gap: 6px 10px;
+    padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 13px;
   }
   .skill-row:last-child { border-bottom: none; }
+  .skill-row .skill-comment { grid-column: 1 / -1; }
+  .skill-row textarea { min-height: 36px; height: 36px; resize: vertical; font-size: 13px; line-height: 1.4; padding: 6px 8px; }
   .sum-bar {
     background: var(--bg2); border-radius: var(--radius); padding: 0.75rem 1rem;
     margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 14px;
@@ -88,7 +90,7 @@
   .role-app { background: var(--purple-bg); color: var(--purple-text); }
   @media (max-width: 500px) {
     .row { grid-template-columns: 1fr; }
-    .skill-row { grid-template-columns: 1fr; }
+    .skill-row { grid-template-columns: 1fr auto; }
     .export-row { flex-direction: column; }
     .pair-card-header { flex-direction: column; align-items: flex-start; }
   }
@@ -485,9 +487,9 @@ async function enterCode() {
 function buildSkillsForm(containerId, skills, ratings, prefix) {
   document.getElementById(containerId).innerHTML =
     skills.map((s,i) => `<div class="skill-row">
-      <span>${s}</span>
+      <span style="align-self:center;">${s}</span>
       <select id="${prefix}-r-${i}">${ratings.map(o=>`<option value="${o.v}">${o.l}</option>`).join('')}</select>
-      <input type="text" id="${prefix}-c-${i}" placeholder="Comment (optional)" />
+      <textarea id="${prefix}-c-${i}" class="skill-comment" placeholder="Comment (optional)"></textarea>
     </div>`).join('') +
     `<div class="sum-bar"><span>Sum / avg</span><span class="sum-val" id="${prefix}-sum">— / —</span></div>`;
   skills.forEach((_,i) => document.getElementById(`${prefix}-r-${i}`).addEventListener('change',()=>updateSum(prefix,skills.length)));
