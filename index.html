@@ -82,6 +82,25 @@
   .sum-val { font-size: 17px; font-weight: 500; }
   .status-msg { font-size: 12px; color: var(--text2); margin-left: 8px; }
   .setup-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .pair-meta-row { font-size: 13px; color: var(--text2); margin-bottom: 0.75rem; }
+  .pair-chips-row { display: flex; gap: 10px; margin-bottom: 0.75rem; }
+  .person-chip {
+    flex: 1; padding: 0.75rem 1rem; border-radius: var(--radius);
+    border: 0.5px solid var(--border2); cursor: pointer; position: relative;
+    transition: opacity 0.12s; user-select: none;
+  }
+  .person-chip:hover { opacity: 0.8; }
+  .person-chip .chip-role { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.7; }
+  .person-chip .chip-name { font-size: 15px; font-weight: 500; margin-bottom: 1px; }
+  .person-chip .chip-level { font-size: 12px; opacity: 0.75; margin-bottom: 8px; }
+  .person-chip .chip-code { font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: 3px; margin-bottom: 6px; }
+  .chip-copied-tip {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 13px; font-weight: 600;
+    border-radius: var(--radius); pointer-events: none; opacity: 0; transition: opacity 0.15s;
+  }
+  .person-chip.copied .chip-copied-tip { opacity: 1; }
+  .pair-btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
   .export-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 0.5rem; }
   .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--text); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 4px; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -431,34 +450,46 @@ function renderPairsList() {
   if (!keys.length) { el.innerHTML='<p class="muted">No pairs yet.</p>'; return; }
   el.innerHTML = keys.map(lc => {
     const p = pairs[lc];
-    const lecStatus = p.lecSaved ? '<span class="badge badge-done">Done</span>' : '<span class="badge badge-pending">Pending</span>';
-    const appStatus = p.appSaved ? '<span class="badge badge-done">Done</span>' : '<span class="badge badge-pending">Pending</span>';
+    const lecBadge = p.lecSaved ? '<span class="badge badge-done">Done</span>' : '<span class="badge badge-pending">Pending</span>';
+    const appBadge = p.appSaved ? '<span class="badge badge-done">Done</span>' : '<span class="badge badge-pending">Pending</span>';
     return `<div class="pair-card">
-      <div class="pair-card-header">
-        <div>
-          <div style="font-size:14px;font-weight:500;">${p.lecName} (${p.lecLevel||'?'}) &harr; ${p.appName} (${p.appLevel||'?'})</div>
-          <div class="pair-meta">${p.event||'No event'}${p.date?' &middot; '+p.date:''} &middot; ${p.target||'No target'}</div>
+      <div class="pair-meta-row">${p.event||'No event'}${p.date?' &middot; '+p.date:''} &middot; ${p.target||'No target'}</div>
+      <div class="pair-chips-row">
+        <div id="chip-lec-${lc}" class="person-chip chip-lec" onclick="copyPersonCode('${lc}','lecturer')">
+          <div class="chip-role">Lecturer</div>
+          <div class="chip-name">${p.lecName}</div>
+          <div class="chip-level">${p.lecLevel||'—'}</div>
+          <div class="chip-code">${p.lecCode}</div>
+          ${lecBadge}
+          <div class="chip-copied-tip">Copied!</div>
         </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-sm" onclick="exportPairPDF('${lc}')">PDF</button>
-          <button class="btn btn-sm" onclick="exportSingleExcel('${lc}')">XLS</button>
-          <button class="btn btn-sm btn-danger" onclick="deletePair('${lc}')">&#10005;</button>
+        <div id="chip-app-${lc}" class="person-chip chip-app" onclick="copyPersonCode('${lc}','apprentice')">
+          <div class="chip-role">Apprentice</div>
+          <div class="chip-name">${p.appName}</div>
+          <div class="chip-level">${p.appLevel||'—'}</div>
+          <div class="chip-code">${p.appCode}</div>
+          ${appBadge}
+          <div class="chip-copied-tip">Copied!</div>
         </div>
       </div>
-      <div class="code-chips">
-        <div class="code-chip chip-lec">
-          <span>Lecturer</span>
-          <span class="code-val">${p.lecCode}</span>
-          ${lecStatus}
-        </div>
-        <div class="code-chip chip-app">
-          <span>Apprentice</span>
-          <span class="code-val">${p.appCode}</span>
-          ${appStatus}
-        </div>
+      <div class="pair-btn-row">
+        <button class="btn btn-sm" onclick="exportPairPDF('${lc}','lecturer')">PDF Lecturer</button>
+        <button class="btn btn-sm" onclick="exportPairPDF('${lc}','apprentice')">PDF Apprentice</button>
+        <button class="btn btn-sm" onclick="exportSingleExcel('${lc}')">XLS</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePair('${lc}')">&#10005; Delete</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function copyPersonCode(lecCode, role) {
+  const p = pairs[lecCode];
+  const name = role === 'lecturer' ? p.lecName : p.appName;
+  const code = role === 'lecturer' ? p.lecCode : p.appCode;
+  const msg = `Hey ${name}, go to ${window.location.href} and enter code ${code} to fill your Project Allay report.`;
+  navigator.clipboard.writeText(msg).catch(() => {});
+  const chip = document.getElementById(`chip-${role === 'lecturer' ? 'lec' : 'app'}-${lecCode}`);
+  if (chip) { chip.classList.add('copied'); setTimeout(() => chip.classList.remove('copied'), 1500); }
 }
 
 // ── JUDGE ENTRY ───────────────────────────────────────────────────────────
@@ -594,13 +625,10 @@ function printForm(type) {
   }, 900);
 }
 
-function exportPairPDF(lecCode) {
-  const pair = pairs[lecCode];
-  ['lecturer','apprentice'].forEach(type => {
-    const html = buildPrintHTML(pair, type);
-    if (!html) return;
-    const win = window.open('','_blank'); win.document.write(html); win.document.close(); win.print();
-  });
+function exportPairPDF(lecCode, role) {
+  const html = buildPrintHTML(pairs[lecCode], role);
+  if (!html) { alert('No data saved yet for this report.'); return; }
+  const win = window.open('','_blank'); win.document.write(html); win.document.close(); win.print();
 }
 
 // ── EXCEL ─────────────────────────────────────────────────────────────────
